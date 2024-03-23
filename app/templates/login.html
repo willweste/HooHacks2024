@@ -5,23 +5,83 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>BioGuard - Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .hidden { display: none; }
+        #photoContainer img { max-width: 100%; }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>Login</h1>
-        <form action="{{ url_for('login') }}" method="POST">
-            <div class="mb-3">
-                <label for="username" class="form-label">Username</label>
-                <input type="text" class="form-control" id="username" name="username" required>
-            </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Login</button>
-        </form>
-        <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a>.</p>
+        <div id="loginChoice">
+            <button onclick="toggleLoginMethod(false)" class="btn btn-info">Traditional Login</button>
+            <button onclick="toggleLoginMethod(true)" class="btn btn-secondary">Facial Recognition Login</button>
+        </div>
+
+        <div id="traditionalLoginFormDiv">
+            <h2>Traditional Login</h2>
+            <form id="traditionalLoginForm" action="{{ url_for('login') }}" method="POST">
+                <input type="hidden" name="login_method" value="traditional">
+                <div class="mb-3">
+                    <label for="usernameTraditional" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="usernameTraditional" name="username" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+        </div>
+
+        <div id="facialLoginFormDiv" class="hidden">
+            <h2>Facial Recognition Login</h2>
+            <video id="video" width="640" height="480" autoplay class="hidden"></video>
+            <button id="capture" type="button" class="btn btn-warning hidden">Capture Photo</button>
+            <div id="photoContainer" class="hidden"><img id="capturedPhoto" src="" alt="Captured photo" /></div>
+            <canvas id="canvas" width="640" height="480" class="hidden"></canvas>
+            <button onclick="toggleLoginMethod(false)" class="btn btn-link">Go Back to Traditional Login</button>
+
+            <form id="facialLoginForm" action="{{ url_for('login') }}" method="POST" class="hidden">
+                <input type="hidden" name="login_method" value="facial">
+                <div class="mb-3">
+                    <label for="usernameFacial" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="usernameFacial" name="username" required>
+                </div>
+                <input type="hidden" name="image" value="" id="imageData">
+                <button type="submit" class="btn btn-primary">Login with Facial Recognition</button>
+            </form>
+        </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleLoginMethod(isFacial) {
+            document.getElementById('traditionalLoginFormDiv').style.display = isFacial ? 'none' : 'block';
+            document.getElementById('facialLoginFormDiv').style.display = isFacial ? 'block' : 'none';
+            document.getElementById('video').style.display = isFacial ? 'block' : 'none';
+            document.getElementById('capture').classList.toggle('hidden', !isFacial);
+            document.getElementById('facialLoginForm').classList.toggle('hidden', !isFacial);
+            document.getElementById('loginChoice').style.display = isFacial ? 'none' : 'block'; // Hide or show the login choice buttons based on selection
+        }
+
+        var video = document.getElementById('video');
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true }).then(function(stream) {
+                video.srcObject = stream;
+                video.play();
+                document.getElementById('capture').classList.remove('hidden');
+            });
+        }
+
+        document.getElementById("capture").addEventListener("click", function() {
+            var canvas = document.getElementById('canvas');
+            var context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, 640, 480);
+            var imageDataUrl = canvas.toDataURL('image/png');
+            document.getElementById('imageData').value = imageDataUrl.replace(/^data:image\/(png|jpg);base64,/, "");
+            document.getElementById('capturedPhoto').src = imageDataUrl;
+            document.getElementById('photoContainer').style.display = 'block'; // Show the captured photo
+            document.getElementById('capture').textContent = 'Capture Again'; // Change button text to indicate option to retake photo
+        });
+    </script>
 </body>
 </html>
