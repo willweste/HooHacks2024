@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
@@ -8,9 +9,14 @@ from .jwt_config import setup_jwt
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Set the absolute path to the userImages folder
+    app.config["UPLOAD_FOLDER"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'userImages')
+
     db.init_app(app)
     bcrypt.init_app(app)
     setup_jwt(app)

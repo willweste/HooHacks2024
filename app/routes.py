@@ -8,6 +8,15 @@ from flask_jwt_extended import (
     unset_jwt_cookies,
     get_jwt_identity,
 )
+from datetime import datetime
+import base64
+import os
+from PIL import Image
+from io import BytesIO
+
+from werkzeug.utils import secure_filename
+import os
+
 
 def setup_routes(app):
     @app.route("/")
@@ -19,18 +28,21 @@ def setup_routes(app):
     @app.route("/register", methods=["GET", "POST"])
     def register():
         if request.method == "POST":
-            # Extract data from the form
             username = request.form.get("username")
             email = request.form.get("email")
             password = request.form.get("password")
-
-            # Hash the password
             hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
+            image = request.files['image']
+            if image:
+                # Read the image in binary format
+                image_data = image.read()
+            else:
+                flash("Image upload failed.", "danger")
+                return redirect(url_for("register"))
 
-            # Create a new User instance with the form data and hashed password
-            new_user = User(username=username, email=email, password=hashed_password)
+            # Create a new User instance including the binary image data
+            new_user = User(username=username, email=email, password=hashed_password, image_data=image_data)
 
-            # Try to add the new user to the session and commit it to the database
             try:
                 db.session.add(new_user)
                 db.session.commit()
@@ -38,6 +50,7 @@ def setup_routes(app):
                 return redirect(url_for("login"))
             except Exception as e:
                 print(f"Error adding user: {e}")
+                db.session.rollback()
                 flash("An error occurred while registering. Please try again.", "danger")
                 return redirect(url_for("register"))
 
@@ -46,26 +59,40 @@ def setup_routes(app):
     @app.route("/login", methods=["GET", "POST"])
     def login():
         if request.method == "POST":
-            # Extract username and password from the form
             username = request.form.get("username")
-            password = request.form.get("password")
+            login_method = request.form.get("login_method")
 
-            # Check if the user exists in the database by username
-            user = User.query.filter_by(username=username).first()
+            if login_method == "traditional":
+                password = request.form.get("password")
+                user = User.query.filter_by(username=username).first()
+                if user and bcrypt.check_password_hash(user.password, password):
+                    # Create access token and log the user in
+                    access_token = create_access_token(identity=username)
+                    response = redirect(url_for("index"))
+                    set_access_cookies(response, access_token)
+                    return response
+                else:
+                    flash("Invalid username or password.", "danger")
 
-            # If the user exists and the password is correct
-            if user and bcrypt.check_password_hash(user.password, password):
-                # Create access token
-                access_token = create_access_token(identity=user.id)
-                # Create redirect response to index page
-                response = redirect(url_for("index"))
-                # Set access cookies on the redirect response
-                set_access_cookies(response, access_token)
-                # Return the redirect response with the cookies set
-                return response
+            elif login_method == "facial":
+                image_data = request.form.get("image")
+                if image_data:
+                    image_data = base64.b64decode(image_data)
+                    image = Image.open(BytesIO(image_data))
+                    # Ensure the 'takenUserImages' directory exists
+                    image_dir = os.path.join(app.config['UPLOAD_FOLDER'], '..', 'takenUserImages')
+                    os.makedirs(image_dir, exist_ok=True)
+                    # Save the image with a unique filename
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    filename = f"{username}_{timestamp}.png"
+                    filepath = os.path.join(image_dir, filename)
+                    image.save(filepath)
+                    flash("Facial recognition login attempt recorded.", "info")
+                    # Implement your facial recognition authentication logic here
+                else:
+                    flash("No image captured for facial recognition login.", "danger")
             else:
-                flash("Invalid username or password. Please try again.", "danger")
-                return redirect(url_for("login"))
+                flash("Invalid login method.", "danger")
 
         return render_template("login.html")
 
