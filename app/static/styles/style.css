@@ -1,0 +1,105 @@
+/* Change navbar items to black on hover */
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link:focus,
+.navbar-brand:hover,
+.navbar-brand:focus {
+  color: black !important;
+}
+
+
+/* navbar style */
+.navbar {
+  width: 70vw;
+  margin: 20px auto 0;
+}
+
+.navbar-nav {
+  justify-content: center;
+}
+
+.navbar-collapse {
+  font-size: 17px;
+  width: 69%;
+  flex-grow: 0;
+  padding-top: 20px;
+  justify-content: center;
+}
+
+.show .nav-link,
+.collapsing .nav-link {
+  margin: 5px 0;
+}
+
+.navbar-collapse a {
+  margin: 0 40px;
+  font-weight: 650;
+  letter-spacing: 1px;
+}
+
+.navbar a.login {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+/* navbar logo style */
+.navbar-brand {
+  font-size: 40px;
+  font-weight: 700;
+  padding: 0;
+  background: linear-gradient(to right, #2693d3, #002033);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* navbar logo style */
+
+
+/* navbar style */
+
+/* Main Body */
+
+main {
+  width: 80vw;
+  margin: 55px auto 0;
+
+  display: flex;
+  justify-content: space-between;
+}
+
+.info-display-account {
+  flex: 1;
+  margin-right: 40px;
+}
+
+.info-display-spending {
+  flex: 0.6;
+  margin-left: 40px;
+}
+
+.account {
+  margin-bottom: 50px;
+}
+
+/* Card Styling */
+.card {
+  background-color: rgb(222, 227, 247);
+  width: 100%;
+  max-width: 900px;
+  min-height: 310px;
+}
+
+.spending-card {
+  width: 100%;
+  min-height: 709px;
+}
+
+h5 {
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+/* Card Styling */
+
+
+/* Main Body */
