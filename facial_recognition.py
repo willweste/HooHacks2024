@@ -4,6 +4,7 @@ from flask import current_app
 from rekognition_utils import create_collection, index_faces, collection_exists, check_faces_indexed
 import cv2
 from botocore.exceptions import ClientError
+from app.models import User
 
 COLLECTION_ID = "users_collection"
 
@@ -13,13 +14,22 @@ def perform_facial_recognition(frame):
     # Ensure the collection exists
     create_collection(COLLECTION_ID)
 
-    # Get the userImages folder path
-    user_image_folder = current_app.config["UPLOAD_FOLDER"]
+    # Get all users from the database
+    users = User.query.all()
 
-    # Check if faces have already been indexed
-    if not check_faces_indexed(COLLECTION_ID, user_image_folder):
-        # Index the faces in the userImages folder
-        index_faces(COLLECTION_ID, user_image_folder)
+    # Index the faces from the database
+    for user in users:
+        try:
+            response = rekognition_client.index_faces(
+                CollectionId=COLLECTION_ID,
+                Image={'Bytes': user.image_data},
+                ExternalImageId=str(user.id),
+                DetectionAttributes=['ALL']
+            )
+            face_records = response['FaceRecords']
+            print(f"Faces indexed for user {user.username}: {len(face_records)} face(s) detected.")
+        except ClientError as e:
+            print(f"Error indexing faces for user {user.username}: {e}")
 
     # Perform facial recognition on the captured frame
     _, buffer = cv2.imencode('.jpg', frame)
@@ -33,8 +43,9 @@ def perform_facial_recognition(frame):
 
         if search_response['FaceMatches']:
             recognized_user_id = search_response['FaceMatches'][0]['Face']['ExternalImageId']
-            print(f"Recognized user: {recognized_user_id}")
-            return recognized_user_id
+            recognized_user = User.query.get(int(recognized_user_id))
+            print(f"Recognized user: {recognized_user.username}")
+            return recognized_user.id
         else:
             print("Unknown user detected")
             return None

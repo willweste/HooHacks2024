@@ -53,15 +53,14 @@ def setup_routes(app):
             hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
             image = request.files['image']
             if image:
-                # Save the image in the userImages folder
-                image_path = os.path.join(current_app.config["UPLOAD_FOLDER"], f"{username}.jpg")
-                image.save(image_path)
+                # Read the image data
+                image_data = image.read()
             else:
                 flash("Image upload failed.", "danger")
                 return redirect(url_for("register"))
 
             # Create a new User instance
-            new_user = User(username=username, email=email, password=hashed_password)
+            new_user = User(username=username, email=email, password=hashed_password, image_data=image_data)
 
             try:
                 db.session.add(new_user)
@@ -108,7 +107,7 @@ def setup_routes(app):
 
     @app.route('/facial_login', methods=['POST'])
     def facial_login():
-        camera = cv2.VideoCapture(0)
+        camera = cv2.VideoCapture('/dev/video')
         ret, frame = camera.read()
         camera.release()
 
