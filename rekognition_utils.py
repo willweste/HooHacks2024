@@ -14,7 +14,6 @@ def collection_exists(collection_id):
         else:
             raise e
 
-
 def create_collection(collection_id):
     rekognition_client = boto3.client('rekognition')
 
@@ -27,29 +26,33 @@ def create_collection(collection_id):
     else:
         print(f"Collection {collection_id} already exists.")
 
-
-def index_faces(collection_id, user_image_data, external_image_id):
+def index_faces(collection_id, users_folder):
     rekognition_client = boto3.client('rekognition')
 
-    try:
-        response = rekognition_client.index_faces(
-            CollectionId=collection_id,
-            Image={'Bytes': user_image_data},
-            ExternalImageId=external_image_id,
-            DetectionAttributes=['ALL']
-        )
-        face_records = response['FaceRecords']
-        print(f"Faces indexed for {external_image_id}: {len(face_records)} face(s) detected.")
-    except ClientError as e:
-        print(f"Error indexing faces for {external_image_id}: {e}")
+    for image_filename in os.listdir(users_folder):
+        if image_filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            image_path = os.path.join(users_folder, image_filename)
+            with open(image_path, 'rb') as image_file:
+                try:
+                    response = rekognition_client.index_faces(
+                        CollectionId=collection_id,
+                        Image={'Bytes': image_file.read()},
+                        ExternalImageId=os.path.splitext(image_filename)[0],  # Use the filename without extension as ExternalImageId
+                        DetectionAttributes=['ALL']
+                    )
+                    face_records = response['FaceRecords']
+                    print(f"Faces indexed for {image_filename}: {len(face_records)} face(s) detected.")
+                except ClientError as e:
+                    print(f"Error indexing faces for {image_filename}: {e}")
 
-
-def check_faces_indexed(collection_id):
+def check_faces_indexed(collection_id, users_folder):
     rekognition_client = boto3.client('rekognition')
 
     try:
         response = rekognition_client.list_faces(CollectionId=collection_id)
-        return len(response['Faces']) > 0
+        indexed_faces_count = len(response['Faces'])
+        image_count = sum(1 for _ in os.listdir(users_folder) if _.lower().endswith(('.png', '.jpg', '.jpeg')))
+        return indexed_faces_count >= image_count
     except ClientError as e:
         print(f"Error checking indexed faces: {e}")
         return False

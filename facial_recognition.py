@@ -4,14 +4,22 @@ from flask import current_app
 from rekognition_utils import create_collection, index_faces, collection_exists, check_faces_indexed
 import cv2
 from botocore.exceptions import ClientError
-COLLECTION_ID = "users_collection"
 
+COLLECTION_ID = "users_collection"
 
 def perform_facial_recognition(frame):
     rekognition_client = boto3.client('rekognition')
 
     # Ensure the collection exists
     create_collection(COLLECTION_ID)
+
+    # Get the userImages folder path
+    user_image_folder = current_app.config["UPLOAD_FOLDER"]
+
+    # Check if faces have already been indexed
+    if not check_faces_indexed(COLLECTION_ID, user_image_folder):
+        # Index the faces in the userImages folder
+        index_faces(COLLECTION_ID, user_image_folder)
 
     # Perform facial recognition on the captured frame
     _, buffer = cv2.imencode('.jpg', frame)
