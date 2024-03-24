@@ -1,4 +1,5 @@
-from flask import Response, render_template, request, jsonify, redirect, url_for, flash
+import numpy as np
+from flask import Response, render_template, request, jsonify, redirect, url_for, flash, current_app
 from app import db, bcrypt
 from app.models import User
 from flask_jwt_extended import (
@@ -13,10 +14,28 @@ import base64
 import os
 from PIL import Image
 from io import BytesIO
-
 from werkzeug.utils import secure_filename
-import os
+from facial_recognition import perform_facial_recognition
+import cv2
 
+def generate_frames(username):
+    camera = cv2.VideoCapture(0)
+    while True:
+        success, frame = camera.read()
+        if not success:
+            break
+
+        recognized_user = perform_facial_recognition(username, frame)
+        if recognized_user:
+            break
+
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame_bytes = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
+    camera.release()
+    cv2.destroyAllWindows()
 
 def setup_routes(app):
     @app.route("/")
@@ -34,14 +53,15 @@ def setup_routes(app):
             hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
             image = request.files['image']
             if image:
-                # Read the image in binary format
-                image_data = image.read()
+                # Save the image in the userImages folder
+                image_path = os.path.join(current_app.config["UPLOAD_FOLDER"], f"{username}.jpg")
+                image.save(image_path)
             else:
                 flash("Image upload failed.", "danger")
                 return redirect(url_for("register"))
 
-            # Create a new User instance including the binary image data
-            new_user = User(username=username, email=email, password=hashed_password, image_data=image_data)
+            # Create a new User instance
+            new_user = User(username=username, email=email, password=hashed_password)
 
             try:
                 db.session.add(new_user)
@@ -73,24 +93,6 @@ def setup_routes(app):
                     return response
                 else:
                     flash("Invalid username or password.", "danger")
-
-            elif login_method == "facial":
-                image_data = request.form.get("image")
-                if image_data:
-                    image_data = base64.b64decode(image_data)
-                    image = Image.open(BytesIO(image_data))
-                    # Ensure the 'takenUserImages' directory exists
-                    image_dir = os.path.join(app.config['UPLOAD_FOLDER'], '..', 'takenUserImages')
-                    os.makedirs(image_dir, exist_ok=True)
-                    # Save the image with a unique filename
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    filename = f"{username}_{timestamp}.png"
-                    filepath = os.path.join(image_dir, filename)
-                    image.save(filepath)
-                    flash("Facial recognition login attempt recorded.", "info")
-                    # Implement your facial recognition authentication logic here
-                else:
-                    flash("No image captured for facial recognition login.", "danger")
             else:
                 flash("Invalid login method.", "danger")
 
@@ -103,3 +105,34 @@ def setup_routes(app):
         unset_jwt_cookies(response)
         flash("You have been logged out.", "success")
         return response
+
+
+    @app.route('/facial_login', methods=['POST'])
+    def facial_login():
+        username = request.form.get('username')
+        print(f"Received username: {username}")
+        if username:
+            camera = cv2.VideoCapture(0)
+            ret, frame = camera.read()
+            camera.release()
+
+            if ret:
+                print("Frame captured successfully.")
+                recognized_user = perform_facial_recognition(username, frame)
+                print(f"Recognized user: {recognized_user}")
+                if recognized_user == username:
+                    access_token = create_access_token(identity=username)
+                    response = redirect(url_for("index"))
+                    set_access_cookies(response, access_token)
+                    print("User logged in successfully.")
+                    return response
+                else:
+                    print("Facial recognition failed.")
+                    flash("Facial recognition failed. Please try again.", "danger")
+            else:
+                print("Failed to capture frame from the camera.")
+                flash("Failed to capture frame from the camera.", "danger")
+        else:
+            print("Username not provided for facial recognition login.")
+            flash("Username not provided for facial recognition login.", "danger")
+        return redirect(url_for("login"))
