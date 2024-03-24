@@ -16,7 +16,7 @@ def wait_for_db():
             retry += 1
             time.sleep(5)
     else:
-        raise RuntimeError('Database connection failed after multiple retries.')
+        raise RuntimeError('Database connection failed after multiple retriesss.')
 
 if __name__ == "__main__":
     wait_for_db()
