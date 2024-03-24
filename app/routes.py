@@ -107,7 +107,7 @@ def setup_routes(app):
 
     @app.route('/facial_login', methods=['POST'])
     def facial_login():
-        camera = cv2.VideoCapture('/dev/video')
+        camera = cv2.VideoCapture(0)
         ret, frame = camera.read()
         camera.release()
 

@@ -9,6 +9,8 @@ services:
       POSTGRES_DB: bioguard
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bioguard-network
 
   app:
     build: .
@@ -21,8 +23,11 @@ services:
     env_file:
       - .env
     command: flask run --host=0.0.0.0 --port=5000
-    devices:
-      - /dev/video0:/dev/video0
+    networks:
+      - bioguard-network
 
 volumes:
   postgres_data:
+
+networks:
+  bioguard-network:

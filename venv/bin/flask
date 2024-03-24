@@ -1,4 +1,4 @@
-#!/Users/willweste/2024-Development/HooHacks2024BioGuard/venv/bin/python
+#!/Users/willweste/2024-Development/HooHacks2024BioGuard/venv/bin/python3.12
 # -*- coding: utf-8 -*-
 import re
 import sys
