@@ -36,13 +36,13 @@
         <div id="facialLoginFormDiv" class="hidden">
             <h2>Facial Recognition Login</h2>
             <form id="facialLoginForm" action="{{ url_for('facial_login') }}" method="POST">
-                <div class="mb-3">
-                    <label for="usernameFacial" class="form-label">Username</label>
-                    <input type="text" class="form-control" id="usernameFacial" name="username" required>
-                </div>
                 <button type="submit" id="startFacialRecognitionBtn" class="btn btn-primary">Start Facial Recognition</button>
             </form>
             <button onclick="toggleLoginMethod(false)" class="btn btn-link">Go Back to Traditional Login</button>
+        </div>
+        <div class="mt-4">
+            <p>Don't have an account yet?</p>
+            <a href="{{ url_for('register') }}" class="btn btn-success">Register Now</a>
         </div>
     </div>
     <script>

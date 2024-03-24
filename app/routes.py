@@ -106,33 +106,26 @@ def setup_routes(app):
         flash("You have been logged out.", "success")
         return response
 
-
     @app.route('/facial_login', methods=['POST'])
     def facial_login():
-        username = request.form.get('username')
-        print(f"Received username: {username}")
-        if username:
-            camera = cv2.VideoCapture(0)
-            ret, frame = camera.read()
-            camera.release()
+        camera = cv2.VideoCapture(0)
+        ret, frame = camera.read()
+        camera.release()
 
-            if ret:
-                print("Frame captured successfully.")
-                recognized_user = perform_facial_recognition(username, frame)
-                print(f"Recognized user: {recognized_user}")
-                if recognized_user == username:
-                    access_token = create_access_token(identity=username)
-                    response = redirect(url_for("index"))
-                    set_access_cookies(response, access_token)
-                    print("User logged in successfully.")
-                    return response
-                else:
-                    print("Facial recognition failed.")
-                    flash("Facial recognition failed. Please try again.", "danger")
+        if ret:
+            print("Frame captured successfully.")
+            recognized_user_id = perform_facial_recognition(frame)
+            if recognized_user_id:
+                access_token = create_access_token(identity=recognized_user_id)
+                response = redirect(url_for("index"))
+                set_access_cookies(response, access_token)
+                print("User logged in successfully.")
+                return response
             else:
-                print("Failed to capture frame from the camera.")
-                flash("Failed to capture frame from the camera.", "danger")
+                print("Facial recognition failed.")
+                flash("Facial recognition failed. Please try again.", "danger")
         else:
-            print("Username not provided for facial recognition login.")
-            flash("Username not provided for facial recognition login.", "danger")
+            print("Failed to capture frame from the camera.")
+            flash("Failed to capture frame from the camera.", "danger")
+
         return redirect(url_for("login"))
